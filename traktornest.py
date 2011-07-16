@@ -2,7 +2,7 @@
     Module for modifying Native Instruments' Traktor 2 database.
     Allows for auto-generation of cue points and basic searching of songs.
     Written by Peter Sobot, July 16, 2011, at #sehackday #4.
-    http://github.com/psobot/traktor
+    http://github.com/psobot/traktornest
 
     (Requires an Echo Nest Remix API key: http://code.google.com/p/echo-nest-remix/)
 """
