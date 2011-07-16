@@ -14,12 +14,10 @@ Usage
 
 How to automatically generate hotcue points for every Daft Punk song in your library:
 
-`
-tunes = traktor.TraktorDB()
+`tunes = traktor.TraktorDB()
 
 for track in tunes.getTracksByArtist("Daft Punk"):
 
     tunes.generateCues(track)
 
-tunes.save()
-`
+tunes.save()`
