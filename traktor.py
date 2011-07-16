@@ -83,6 +83,13 @@ class TraktorDB:
         l.close()
         self.original = xml
 
+    def _justASCII(self, string):
+        try:
+            string.decode('ascii')
+        except:
+            return False
+        return True
+
     def generateCues(self, track, replace=False):
         """
         Automatically generates cuepoints for a given track.
@@ -108,12 +115,17 @@ class TraktorDB:
         #   TODO: Fix this to work on more than Mac
         location =  track.find("LOCATION")
         localpath = "/Volumes/" + location.get("VOLUME") + location.get("DIR").replace("/:", "/") + location.get("FILE")
+        
+        if not self._justASCII(localpath):
+            print "Error: non-ASCII file paths currently break this program. This path didn't work:", localpath
+            return track.findall("CUE_V2")
 
         song = audio.LocalAudioFile(localpath)
         os.unlink(song.convertedfile)
 
         offset = 0  #   used when the echonest thinks a song starts with a rest
 
+        #refactor this to return early
         if song.analysis.beats:
             if track.findall("CUE_V2") and track.findall("CUE_V2")[0].get("NAME") == "AutoGrid":
                 #   make use of Traktor's autogrid start point if it exists
@@ -180,13 +192,12 @@ class TraktorDB:
         filename = os.path.basename(path)
         results = self.data.findall("COLLECTION/ENTRY/LOCATION[@FILE='%s']" % filename)
         if len(results) > 1:
-            pathComponents = re.search("/Volumes/(.+?)/(.+?)/(.+?)" % filename, os.path.abspath(path))
+            pathComponents = re.search("/Volumes/(.+?)/(.+?)/%s" % filename, os.path.abspath(path))
             print "[DEBUG] pathComponents:", pathComponents
             if pathComponents:
                 pathComponents = pathComponents.groups()
                 volume = pathComponents[0]
                 traktorDir = pathComponents[1].replace("/", "/:")
-                parsedFilename = pathComponents[2]
 
                 result = self.data.find("COLLECTION/ENTRY/LOCATION[@DIR='%s']" % traktorDir)
                 if not result:
@@ -220,8 +231,19 @@ class TraktorDB:
         Returns a list of all the tracks; raises an exception if no tracks found.
         """
         #   Quickly check for full name with the fast method...
-        r = self.data.xpath("COLLECTION/ENTRY[@AUDIO_ID][count(CUE_V2) = 1]")
+        r = self.data.xpath("COLLECTION/ENTRY[@AUDIO_ID][count(CUE_V2) = 1]")   #Make sure track is not already in the "Processed" playlist
         if r:
+            processed = db.data.findall("/PLAYLISTS/NODE[@TYPE='FOLDER']/SUBNODES/NODE[@TYPE='PLAYLIST'][@NAME='Auto-Cued Tracks']/PLAYLIST/ENTRY")
+            if processed:
+                for track in processed:
+                    pk = track.find("PRIMARYKEY").get("KEY")
+                    lp = re.search("(.+?)(/.+/:)(.+?)", pk)
+                    volume = lp.groups()[0]
+                    directory = lp.groups()[1]
+                    filename = lp.groups()[2]
+                    for t in r:
+                        if t.find("LOCATION").get("FILE") == filename or t.find("LOCATION").get("DIR") == directory:
+                            r.remove(t)
             return r
         else:
             raise Exception("No tracks available to add cues for!")
@@ -275,7 +297,23 @@ class TraktorDB:
             print "Processing track:"
             self.prettyPrintTracks([track])
             self.generateCues(track)
+            self.addToPlaylist(track)
             self.save()
+
+    def addToPlaylist(self, track):
+        #playlist must already exist - TODO: Write code to generate playlist
+        playlist = self.data.find("/PLAYLISTS/NODE[@TYPE='FOLDER']/SUBNODES/NODE[@TYPE='PLAYLIST'][@NAME='Auto-Cued Tracks']/PLAYLIST")
+        # <ENTRY><PRIMARYKEY TYPE="TRACK" KEY="Fry HD/:Music/:iTunes/:iTunes Music/:Jamiroquai/:Travelling Without Moving/:01 Virtual Insanity.mp3"></PRIMARYKEY></ENTRY>
+        entry = etree.Element("ENTRY")
+        primarykey = etree.Element("PRIMARYKEY")
+        primarykey.set("TYPE", "TRACK")
+        location =  track.find("LOCATION")
+        localpath = location.get("VOLUME") + location.get("DIR").replace("/[^:]", "/:") + location.get("FILE")
+        primarykey.set("KEY", localpath)
+        entry.append(primarykey)
+        playlist.append(entry)
+        playlist.set("ENTRIES", str(int(playlist.get("ENTRIES")) + 1))
+
 
 #   Only run this code if invoked, not if imported.
 if __name__ == '__main__':
