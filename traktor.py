@@ -125,7 +125,8 @@ class TraktorDB:
 
         offset = 0  #   used when the echonest thinks a song starts with a rest
 
-        #refactor this to return early
+        #   TODO: refactor this to return early
+        #   TODO: refine this offset system. Kinda hackish and not very reliable. 
         if song.analysis.beats:
             if track.findall("CUE_V2") and track.findall("CUE_V2")[0].get("NAME") == "AutoGrid":
                 #   make use of Traktor's autogrid start point if it exists
@@ -301,6 +302,10 @@ class TraktorDB:
             self.save()
 
     def addToPlaylist(self, track):
+        """
+        Adds track entry to "Auto-Cued Tracks" playlist.
+        Method still very hacky.
+        """
         #playlist must already exist - TODO: Write code to generate playlist
         playlist = self.data.find("/PLAYLISTS/NODE[@TYPE='FOLDER']/SUBNODES/NODE[@TYPE='PLAYLIST'][@NAME='Auto-Cued Tracks']/PLAYLIST")
         # <ENTRY><PRIMARYKEY TYPE="TRACK" KEY="Fry HD/:Music/:iTunes/:iTunes Music/:Jamiroquai/:Travelling Without Moving/:01 Virtual Insanity.mp3"></PRIMARYKEY></ENTRY>
