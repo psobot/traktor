@@ -7,7 +7,7 @@ Allows for auto-generation of hotcue points (via the Echo Nest API) and basic se
 
 Written by Peter Sobot, July 16, 2011, at #sehackday #4.
 
-http://github.com/psobot/traktornest
+http://github.com/psobot/traktor
 
 (Requires an Echo Nest Remix API key: http://code.google.com/p/echo-nest-remix/)
 
